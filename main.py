@@ -12,6 +12,7 @@ from machine import Pin       # Define pin
 from secrets import secrets   # Import secrets for Wi-Fi
 import dht                    # Import DHT sensor library
 
+# CONFIGURING PINS
 # Initialize DHT11 temperature and humidity sensor
 dhtSensor = dht.DHT11(Pin(27))
 
@@ -22,33 +23,34 @@ yellow_led=Pin(16, Pin.OUT)   # yellow LED pin
 rgb_led = Pin(13, Pin.OUT)    # RGB LED pin
 led = Pin("LED", Pin.OUT)     # on-board led pin initialization for Raspberry Pi Pico W
 
-# Initialize button, IR receiver and transmitter pins
-ir_transmitter = Pin(17, Pin.OUT)
-ir_receiver = Pin(18, Pin.IN)
-button = Pin(19, Pin.IN, Pin.PULL_UP)
-tilt_pin = Pin(0, Pin.IN)
+# Initialize button sensor, tilt sensor, IR receiver and transmitter pins
+ir_transmitter = Pin(17, Pin.OUT)      # IR transmitter PIN
+ir_receiver = Pin(18, Pin.IN)          # IR receiver PIN
+button = Pin(19, Pin.IN, Pin.PULL_UP)  # Push button PIN
+tilt_pin = Pin(0, Pin.IN)              # Tilt sensor PIN (we use it to measure vibrations!)
 
-# IR constants
+# SENSOR PREFERENCES
+# Preferences for IR Transmitter/Receiver
 FREQUENCY = 38000        # Infrared carrier frequency (38 kHz)
 PULSE_WIDTH = 26         # Half of the carrier wave period (in microseconds)
 ir_signal_count = 0      # Variable to count received IR signals
 SIGNAL_COUNT_CUTOFF = 30 # Number of IR signals needed to activate indicator
 
-# BEGIN SETTINGS
-# These need to be change to suit your environment
-TEMPERATURE_INTERVAL = 60000
-HUMIDITY_INTERVAL = 60000
-RGB_INTERVAL = 10000
+# Preferences for measurements and MQTT publishing intervals
+TEMPERATURE_INTERVAL = 60000  # Measure temperature interval
+HUMIDITY_INTERVAL = 60000     # Measure humidity interval
+RGB_INTERVAL = 10000          # How long RGB LED should light up after you bump into another stroller
 last_temperature_sent_ticks = 0
 last_humidity_sent_ticks = 0
-last_rgb_flash = 0
-rgb_isEnabled = True
+last_rgb_flash_ticks = 0
+rgb_isEnabled = True          # Whether RGB LED is enabled
 
-# Preferences
-TEMP_LOW = 22.0
-TEMP_HIGH = 23.0
-HUMID_HIGH = 40.0
+# Preferences for Temperature and Humidity Indicator LEDs
+TEMP_LOW = 22.0               # red LED turns on below this, otherwise green LED is on
+TEMP_HIGH = 26.0              # red LED turns on above this, otherwise green LED is on
+HUMID_HIGH = 70.0             # yellow LED turns on above this
 
+# CONNECTIVITY SETTINGS
 # Wi-Fi configuration
 WIFI_SSID, WIFI_PASS = secrets["ssid"], secrets["password"]
 
@@ -63,10 +65,7 @@ AIO_TEMPERATURE_FEED = "stroller/feeds/temperature"
 AIO_HUMIDITY_FEED = "stroller/feeds/humidity"
 AIO_IR_SENSOR_FEED = "stroller/feeds/ir-sensor"
 
-# END SETTINGS
-
 # FUNCTIONS
-
 # Function to connect Pico to the WiFi
 def do_connect():
     import network
@@ -90,7 +89,7 @@ def do_connect():
     print('\nConnected on {}'.format(ip))
     return ip 
 
-# Callback Function to respond to messages from Adafruit IO
+# Callback Function to respond to ON/OFF messages from Adafruit IO with RGB LED
 def sub_cb(topic, msg):          # sub_cb means "callback subroutine"
     global rgb_isEnabled
     print((topic, msg))          # Outputs the message that was received. Debugging use.
@@ -103,6 +102,7 @@ def sub_cb(topic, msg):          # sub_cb means "callback subroutine"
     else:                        # If any other message is received ...
         print("Unknown message") # ... do nothing but output that it happened.
 
+# Function to measure temperature
 def measure_temperature():
     try:
         # Measure temperature and humidity
@@ -112,7 +112,8 @@ def measure_temperature():
     except:
         # Error occurred while reading sensor values
         print("Error in reading sensor values")
-        
+
+# Function to measure humidity
 def measure_humidity():
     try:
         # Measure temperature and humidity
@@ -131,7 +132,7 @@ def send_IR_sensor():
     except Exception as e:
         print("FAILED")
 
-# Functions to publish temperature and humidity to Adafruit IO MQTT server at fixed interval
+# Functions to publish temperature to Adafruit IO MQTT server at fixed interval
 def send_temperature():
     global last_temperature_sent_ticks
     global TEMPERATURE_INTERVAL
@@ -140,7 +141,7 @@ def send_temperature():
         return  # Too soon since the last one was sent.
 
     temperature = measure_temperature()  # Call the measure_temperature() function to get the temperature value.
-    handle_temperature(temperature)
+    handle_temperature(temperature)      # Call function to turn on green or red LED according to temperature preferences
     print("Publishing: {0} to {1} ... ".format(temperature, AIO_TEMPERATURE_FEED), end='')
 
     try:
@@ -151,6 +152,7 @@ def send_temperature():
     finally:
         last_temperature_sent_ticks = time.ticks_ms()
 
+# Function to publish humidity to Adafruit IO MQTT server at fixed interval 
 def send_humidity():
     global last_humidity_sent_ticks
     global HUMIDITY_INTERVAL
@@ -159,7 +161,7 @@ def send_humidity():
         return  # Too soon since the last one was sent.
 
     humidity = measure_humidity()  # Call the measure_humidity() function to get the humidity value.
-    handle_humidity(humidity)
+    handle_humidity(humidity)      # Call function to turn on yellow LED according to humidity preferences
     print("Publishing humidity: {0} to {1} ... ".format(humidity, AIO_HUMIDITY_FEED), end='')
 
     try:
@@ -170,6 +172,7 @@ def send_humidity():
     finally:
         last_humidity_sent_ticks = time.ticks_ms()
 
+# Function to turn on red or green LED based on temperature preferences
 def handle_temperature(temperature):
     # Check if temperature is between 22.0 and 26.0
     if TEMP_LOW <= temperature <= TEMP_HIGH:
@@ -179,6 +182,7 @@ def handle_temperature(temperature):
         green_led.off()  # Turn off the green LED
         red_led.on()  # Turn on the red LED
 
+# Function to turn on yellow LED based on humidity preferences
 def handle_humidity(humidity):
     # Check if humidity is above 70.0
     if humidity > HUMID_HIGH:
@@ -186,7 +190,7 @@ def handle_humidity(humidity):
     else:
         yellow_led.off()  # Turn off the yellow LED
 
-# Function to encode the data using NEC protocol
+# Function to encode IR transmitter data using NEC protocol
 def encode_nec(data):
     # Start bit
     send_pulse(True)
@@ -212,6 +216,7 @@ def send_pulse(value):
     time.sleep_us(PULSE_WIDTH if value else PULSE_WIDTH * 3)
     
 
+# SETUP
 # Try WiFi Connection
 try:
     ip = do_connect()
@@ -224,55 +229,59 @@ client = MQTTClient(AIO_CLIENT_ID, AIO_SERVER, AIO_PORT, AIO_USER, AIO_KEY)
 # Subscribed messages will be delivered to this callback
 client.set_callback(sub_cb)
 client.connect()
-client.subscribe(AIO_LIGHTS_FEED)
+client.subscribe(AIO_LIGHTS_FEED) #subscribe to lights feed which toggles ON/OFF RGB LED
 print("Connected to %s, subscribed to %s topic" % (AIO_SERVER, AIO_LIGHTS_FEED))
 
 
-
+# LOOP
 try:  # Code between try: and finally: may cause an error
       # so ensure the client disconnects the server if
       # that happens.
+      
     while True:  # Repeat this loop forever
-        rgb_led.off()
+        
+        #Check MQTT messages and publish sensor values to MQTT message broker
         client.check_msg()  # Action a message if one is received. Non-blocking.
-        send_temperature()  # send temperature
-        #handle_temperature()  # turn on temperature indicator light
-        send_humidity()  # send humidity
-        #handle_humidity()  # turn on humidity indicator light
+        send_temperature()  # Publish temperature
+        send_humidity()     # Publish humidity
 
+        # IR Transmitter - send pulse if button is pressed
         if not button.value():
             # Button is pressed, send IR signal with encoded message
             encode_nec(0x55)  # Example message (change as needed)
         elif button.value() and ir_signal_count > 0:
-            # Button is released, reset IR signal count and turn off LED
+            # Button is released, reset IR signal count
             ir_signal_count = 0
-            led.off()
-
+        
+        # IR Receiver - count number of pulses (counting low to high transitions during button press)
         if not ir_receiver.value():
             # IR signal received
             ir_signal_count += 1
             print("IR signal received:", ir_signal_count)
             while not ir_receiver.value():  # Wait until the IR receiver input goes high
                 pass  # Do nothing
-
+        
+        # Check criteria that determines if we have bumped into another friendly stroller
         if ir_signal_count > SIGNAL_COUNT_CUTOFF:
-            # send MQTT message to Adafruit and discord
-            print(rgb_isEnabled)
             if rgb_isEnabled:
-                rgb_led.on()
-            send_IR_sensor()
-            time.sleep(10)
-            rgb_led.off()
+                rgb_led.on()                       # Turn on RGB LED if enabled
+            last_rgb_flash_ticks = time.ticks_ms() # Reset RGB led timing
             
+            send_IR_sensor()                       # Send MQTT message "You bumped into someone" to Adafruit and discord
+            
+            while (time.ticks_ms() - last_rgb_flash_ticks) < RGB_INTERVAL:
+                pass                               # Do nothing while LED flashes for 10 seconds
+            rgb_led.off()                          # Turn off RGB LED
+            
+        # Turn on the on-board LED when we detect vibrations (using tilt switch for this purpose!) 
         if tilt_pin.value():
             #print("Tilt switch is in the open position")
-            led.off()  # Turn off the LED
+            led.off()  # Turn off the on-board LED
         else:
             #print("Tilt switch is in the closed position")
-            led.on()  # Turn on the LED
+            led.on()  # Turn on the on-board LED
 
 finally:  # If an exception is thrown ...
     client.disconnect()  # ... disconnect the client and clean up.
     client = None
     print("Disconnected from Adafruit IO.")
-
