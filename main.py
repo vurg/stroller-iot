@@ -2,14 +2,13 @@
 # Nasit Vurgun, Software Engineering at Gothenburg University
 # Coursework: LNU - Internet of Things (Summer 2023)
 
-import time                   # Allows use of time.sleep() for delays
+import time                   # Allows use of timing and delays
 from mqtt import MQTTClient   # For use of MQTT protocol to talk to Adafruit IO
 import ubinascii              # Conversions between binary data and various encodings
 import machine                # Interfaces with hardware components
 import micropython            # Needed to run any MicroPython code
-import random                 # Random number generator
-from machine import Pin       # Define pin
-from secrets import secrets   # Import secrets for Wi-Fi
+from machine import Pin       # Define pins
+from secrets import secrets   # Import secrets for Wi-Fi and MQTT
 import dht                    # Import DHT sensor library
 
 # CONFIGURING PINS
