@@ -49,10 +49,11 @@ That's it! You have installed Thonny / VS Code and flashed the firmware on Raspb
 
 ## Putting everything together
 A quick walkthrough what the purpose of each electronic components for this project and how they interact with each other:
-* DHT11 measures temperature (degC) and relative humidity (%).
-* LED indicators change color depending on temperature (solid green if ideal, flashes red if its outside optimal range), and humidity (yellow lights up if it's very humid).
-* Tilt switch turns on the multicolor LED.
-* Button press enables the IR transmitter/receiver. 
+* DHT11 measures temperature (degC) and relative humidity (%). Published to Adafruit.
+* LED indicators change color depending on temperature (solid green if ideal, flashes red if its outside optimal range), and humidity preferences (yellow lights up if it's very humid).
+* Tilt switch turns on pico PCB on-board LED. This functions as vibration sensor.
+* Button press enables the IR transmitter/receiver. Press it while approaching another stroller.
+* If 30 consecutive IR signals are received within short duration, AdaFruit is notified. Discord message is sent through webhook. RGB LED lights up for 10 seconds (default setting).
 
 **Circuit Diagram**:
 ![](https://hackmd.io/_uploads/ry2C4yzKn.png)
@@ -64,28 +65,48 @@ You need to use a 10 kOhm resistor to pull-up the voltage for the tilt switch se
 I chose [Adafruit IO](https://io.adafruit.com/), a cloud-based platform with webhooks for my IoT project. It is well-suited for small-scale projects and offers beginner-friendly features, free usage, and simple management. The free version allows for 5 feeds and 30 messages per minute, with the option to upgrade for a fee. Adafruit requires minimal coding on the back-end, which made it simple to make a front-end client for my project. I also implemented webhooks to send messages to Discord, which is a really neat feature that is available on Adafruit.
 
 ## The Code
-Start by downloading `mqtt.py` from [here](https://github.com/iot-lnu/applied-iot/blob/master/Pycom%20Micropython%20(esp32)/network-examples/mqtt_ubidots/mqtt.py).
+Start by downloading `mqtt.py` from [here](https://github.com/iot-lnu/applied-iot/blob/master/Pycom%20Micropython%20(esp32)/network-examples/mqtt_ubidots/mqtt.py). Upload it to the Raspberry Pi Pico W.
 
-Upload `main.py` found [here](https://github.com/vurg/stroller-iot/blob/main/main.py), to the Raspberry Pi Pico W.
+Download `main.py` found on my GitHub [here](https://github.com/vurg/stroller-iot/blob/main/main.py), and upload it to the Pico.
+
+Create a `secrets.py` with your Wi-Fi details, and Adafruit key. Upload it to the Pico device:
+
+```
+secrets = {
+   'ssid' : 'YOUR_WIFI_NETWORK_SSID_NAME',
+   'password' : 'YOUR_WIFI_NETWORK_PASSWORD',
+   'ada_key' : 'YOUR_ADAFRUIT_IO_KEY',
+   }
+```
+
+
+**This section is under construction. Detailed explanations to follow.**
+
 
 # Transmitting the data / connectivity
-Temperature and humidity measurements are published on the [Adafruit dashboard](https://io.adafruit.com/stroller/dashboards/mydashboard) every minute. Adafruit.io sends messages using webhooks to Discord when they are outside the desired range. My project uses Wi-Fi, typically through a cellphone that has hotspot enabled. Once Wi-Fi connection is established, messages are sent from the Pico to the Adafruit IO MQTT cloud broker.
+Temperature and humidity measurements are published on the [Adafruit dashboard](https://io.adafruit.com/stroller/dashboards/mydashboard) every minute. Adafruit.io has built in actions using webhooks that send discord messages. Firstly, we are notified on discord when we encounter another friendly stroller. Secondly, we are alerted when temperature and huidity are much higher than the desired range. My project uses Wi-Fi, typically through a cellphone that has hotspot enabled. Once Wi-Fi connection is established, messages are sent from the Pico to the Adafruit IO server wtih its MQTT cloud broker. We also subscribe to messages from the MQTT broker for whether the RGB LED should turn on when we turn on the IR transmitter and approach another stroller. Some users may not want this (unwanted attention).
 
 **Note:** The Raspberry Pi Pico W Wi-Fi component is unable to connect to 5G networks!!
 
 # Presenting the data
 
-![](https://hackmd.io/_uploads/rJy6jbzKn.png)
+![](https://hackmd.io/_uploads/BkoBMHfth.png)
 
-The data is published and saved to Adafruit every minute when the device is powered on. Each feed in Adafruit stores the data for 30 days. Webhooks warnings are sent to Discord when temperature is above 26 degC, and humidity is above 70%.
-![](https://hackmd.io/_uploads/r19niffFn.png)
+The data is published and saved to Adafruit every minute when the device is powered on. Each feed in Adafruit stores the data for 30 days. Webhooks warnings are sent to Discord when temperature is above 26 degC, and humidity is above 70%. The RGB LED feature can also be turned ON or OFF through the Adafruit dashboard. There is also a running text stream that keeps a note of when we bump into someone.
 
 
-I also tried HiveMQ (encrypted cloud broker). Due to the sake of time, I went with Adafruit. If I had more time, I would have built my own back-end, and a mobile app with [LoRaWAN Geolocation](https://backend.orbit.dtu.dk/ws/portalfiles/portal/130478296/paper_final_2.pdf).
+The dashboard is built using feeds and actions, as shown below.
+![](https://hackmd.io/_uploads/rkJDGrMY2.png)
+![](https://hackmd.io/_uploads/HJSvGBzY2.png)
+
+As an alternative, I tried HiveMQ (encrypted cloud broker), and was able to have an SSL/TLS encrypted connection. If I had more time, I would have built my own back-end with this, and a mobile app with [LoRaWAN Geolocation](https://backend.orbit.dtu.dk/ws/portalfiles/portal/130478296/paper_final_2.pdf). I will also try out the TIG stack in the coming days.
 
 # Finalizing the design
-| Stroller with Breadboard + Powerbank| IoT Dashboard |
-| -------- | -------- |
-|<img src="https://hackmd.io/_uploads/ryK3T-Mt3.jpg" width="60%" height="60%">|<img src="https://hackmd.io/_uploads/Hyfx0ZzF2.png" width="150%" height="150%">|
+| Prototype with Breadboard + Powerbank| IoT Dashboard |
+| -------- | -------- | 
+|<img src="https://hackmd.io/_uploads/ryK3T-Mt3.jpg" width="60%" height="60%">|<img src="https://hackmd.io/_uploads/BkoBMHfth.png" width="150%" height="150%">|
+
+**Discord**
+![](https://hackmd.io/_uploads/B1Q6WHMF3.png)
 
 **Hackmd link:** https://hackmd.io/@rIFCcdNpR2WfEEjApaiQyw/B1Un8bGFn
