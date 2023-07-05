@@ -12,10 +12,10 @@ The project hardware includes the Raspberry Pi Pico W, a DHT11 sensor, LED indic
 ![](https://hackmd.io/_uploads/rykT99GKh.jpg)
 
 
-## Objective
+# Objective
 As a parent, I am constantly monitoring the well-being of my child, especially on hot and humid summer days. Sometimes, the weather changes quickly, and rain approaches during a leisurely walk through the neighborhood. Other times, my wife wishes to meet other parents so that she can make friends and so that our children can play together. This is the reason I came up with this project. Parents like us might want to use a smart stroller with sensors and indicators to keep their child safe and comfortable. With the temperature and humidity sensor, parents can make sure that their child doesn't get too hot or too cold. The indicator lights help parents to quickly check if everything is okay in the stroller and to take action if needed. Many parents have complained of social isolation after having children. By enabling the social feature, parents can easily meet other parents with strollers, without sharing their sensitive personal data with third-party mobile apps.
 
-## Materials
+# Materials
 
 | Image | Component | Description | Cost |
 | -------- | -------- | -------- | -------- |
@@ -36,7 +36,7 @@ As a parent, I am constantly monitoring the well-being of my child, especially o
 |<img src="https://hackmd.io/_uploads/HyYP2hWt3.jpg" width="50%" height="50%">| Hama PowerBank - 20000 mAh| Portable power bank with 20000 mAh capacity. | Bauhaus 379kr|
 
 
-## Computer setup
+# Computer setup
 Follow these steps to install Thonny and flash firmware on the Raspberry Pi Pico W.
 
 1. Download and install the Raspberry Pi Pico W [MicroPython UF2 firmware](https://micropython.org/download/rp2-pico-w/rp2-pico-w-latest.uf2):
@@ -52,7 +52,7 @@ That's it! You have installed Thonny / VS Code and flashed the firmware on Raspb
 
 
 
-## Putting everything together
+# Putting everything together
 A quick walkthrough what the purpose of each electronic components for this project and how they interact with each other:
 * DHT11 measures temperature (degC) and relative humidity (%). Published to Adafruit.
 * LED indicators change color depending on temperature (solid green if ideal, flashes red if its outside optimal range), and humidity preferences (yellow lights up if it's very humid).
@@ -69,10 +69,10 @@ You need to use a 10 kOhm resistor to pull-up the voltage for the tilt switch se
 
 :warning: **Warning:** Cabling will be a mess (spagetti) on the breadboard -  it is best to use short wires!!
 
-## Platform
+# Platform
 I chose [Adafruit IO](https://io.adafruit.com/), a cloud-based platform with webhooks for my IoT project. It is well-suited for small-scale projects and offers beginner-friendly features, free usage, and simple management. The free version allows for 5 feeds and 30 messages per minute, with the option to upgrade for a fee. Adafruit requires minimal coding on the back-end, which made it simple to make a front-end client for my project. I also implemented webhooks to send messages to Discord, which is a really neat feature that is available on Adafruit.
 
-## The Code
+# The Code
 Start by downloading `mqtt.py` from [here](https://github.com/iot-lnu/applied-iot/blob/master/Pycom%20Micropython%20(esp32)/network-examples/mqtt_ubidots/mqtt.py). Upload it to the Raspberry Pi Pico W.
 
 Download `main.py` found on my GitHub [here](https://github.com/vurg/stroller-iot/blob/main/main.py), and upload it to the Pico.
