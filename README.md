@@ -1,5 +1,5 @@
 # Stroller IoT Project with Raspberry Pi Pico W
-**Author:** Nasit Vurgun (nv222ek), July 2023
+**Author:** Nasit Vurgun (nv222ek)
 
 ![](https://hackmd.io/_uploads/H1rHToZt2.png)
 
@@ -8,6 +8,9 @@
 The project hardware includes the Raspberry Pi Pico W, a DHT11 sensor, LED indicators, a push button, a tilt sensor, and a 38 kHz IR transmitter/sensor pair. The software includes an Adafruit IoT dashboard.
 
 **Time**: 10-12 hours to complete, depending on skill level.
+
+![](https://hackmd.io/_uploads/rykT99GKh.jpg)
+
 
 ## Objective
 As a parent, I am constantly monitoring the well-being of my child, especially on hot and humid summer days. Sometimes, the weather changes quickly, and rain approaches during a leisurely walk through the neighborhood. Other times, my wife wishes to meet other parents so that she can make friends and so that our children can play together. This is the reason I came up with this project. Parents like us might want to use a smart stroller with sensors and indicators to keep their child safe and comfortable. With the temperature and humidity sensor, parents can make sure that their child doesn't get too hot or too cold. The indicator lights help parents to quickly check if everything is okay in the stroller and to take action if needed. Many parents have complained of social isolation after having children. By enabling the social feature, parents can easily meet other parents with strollers, without sharing their sensitive personal data with third-party mobile apps.
@@ -58,8 +61,9 @@ A quick walkthrough what the purpose of each electronic components for this proj
 * If 30 consecutive IR signals are received within short duration, AdaFruit is notified. Discord message is sent through webhook. RGB LED lights up for 10 seconds (default setting).
 
 **Circuit Diagram**:
-![](https://hackmd.io/_uploads/ry2C4yzKn.png)
-**Disconnect USB from powerbank or computer end before you connect any pins.** Verify sensor polarity from sensor/LED datasheets. Refer to the [Pinout Diagram]() for the Raspberry Pi Pico W.
+![](https://hackmd.io/_uploads/rkAf3SXYh.png)
+
+**Disconnect USB from powerbank or computer end before you connect any pins.** Verify sensor polarity from sensor/LED datasheets. Refer to the [Pinout Diagram]() for the Raspberry Pi Pico W. Always follow the manufacturer data sheets when connecting sensors.
 
 You need to use a 10 kOhm resistor to pull-up the voltage for the tilt switch sensor. You need 330 Ohm resistors for each of the LEDs to limit the current. Power device from laptop or power bank.
 
@@ -83,9 +87,139 @@ secrets = {
    }
 ```
 
+#### Explanation of `main.py`:
+The code is **commented thoroughly** on GitHub. The structure of the program is as follows:
+1. [IMPORT LIBRARIES](https://github.com/vurg/stroller-iot/blob/fdb8bd8e2c3de49ec7f4858efcb1c103f6972ef6/main.py#L5C1-L12C58) - import external libraries that we depend on
+2. [CONFIGURE PINS](https://github.com/vurg/stroller-iot/blob/fdb8bd8e2c3de49ec7f4858efcb1c103f6972ef6/main.py#L14C1-L29C57) - initialize pins for DHT, LEDs, button, tilt sensor, IR transmitter/receiver
+3. [DEFINE SENSOR PREFERENCES](https://github.com/vurg/stroller-iot/blob/fdb8bd8e2c3de49ec7f4858efcb1c103f6972ef6/main.py#L31C1-L50C63) - variables and constants we will be using throughout program
+4. [DEFINE CONNECTIVITY SETTINGS](https://github.com/vurg/stroller-iot/blob/fdb8bd8e2c3de49ec7f4858efcb1c103f6972ef6/main.py#L52C1-L66C1) - variables and constants for Wi-Fi and MQTT connections
+5. [DEFINE FUNCTIONS](https://github.com/vurg/stroller-iot/blob/fdb8bd8e2c3de49ec7f4858efcb1c103f6972ef6/main.py#L67C1-L216C5) - such as sensor read/write functions and helper methods
+6. [SETUP](https://github.com/vurg/stroller-iot/blob/fdb8bd8e2c3de49ec7f4858efcb1c103f6972ef6/main.py#L218C1-L234C1) - runs once, we connect to Wi-Fi network and MQTT broker and start subscriptions
+7. [LOOP](https://github.com/vurg/stroller-iot/blob/fdb8bd8e2c3de49ec7f4858efcb1c103f6972ef6/main.py#L235C1-L286C44) - runs forever, until unhandled exception and crash, or power loss
 
-:warning:	**This section is under construction. Detailed explanations to follow.** 
+We can briefly discuss the IR sensor/transmitter logic (below), since the DHT11 is straight-forward:
 
+```
+# Preferences for IR Transmitter/Receiver
+FREQUENCY = 38000        # Infrared carrier frequency (38 kHz)
+PULSE_WIDTH = 26         # Half of the carrier wave period (in microseconds)
+ir_signal_count = 0      # Variable to count received IR signals
+SIGNAL_COUNT_CUTOFF = 30 # Number of IR signals needed to activate indicator
+
+# Functions to publish IR sensor
+def send_IR_sensor():
+    try:
+        client.publish(topic=AIO_IR_SENSOR_FEED, msg="You bumped into someone!")
+        print("DONE")
+    except Exception as e:
+        print("FAILED")
+
+# Function to encode IR transmitter data using NEC protocol
+def encode_nec(data):
+    # Start bit
+    send_pulse(True)
+
+    # Data bits
+    for i in range(8):
+        bit = (data >> i) & 1
+        send_pulse(bit)
+
+    # Inverted data bits
+    for i in range(8):
+        bit = (data >> i) & 1
+        send_pulse(not bit)
+
+    # Stop bit
+    send_pulse(False)
+
+# Function to send a pulse with the specified value
+def send_pulse(value):
+    ir_transmitter.on()
+    time.sleep_us(PULSE_WIDTH if value else PULSE_WIDTH * 3)
+    ir_transmitter.off()
+    time.sleep_us(PULSE_WIDTH if value else PULSE_WIDTH * 3)
+```
+
+
+
+```
+# SETUP
+# Try WiFi Connection
+try:
+    ip = do_connect()
+except KeyboardInterrupt:
+    print("Keyboard interrupt")
+
+# Use the MQTT protocol to connect to Adafruit IO
+client = MQTTClient(AIO_CLIENT_ID, AIO_SERVER, AIO_PORT, AIO_USER, AIO_KEY)
+
+# Subscribed messages will be delivered to this callback
+client.set_callback(sub_cb)
+client.connect()
+client.subscribe(AIO_LIGHTS_FEED) #subscribe to lights feed which toggles ON/OFF RGB LED
+print("Connected to %s, subscribed to %s topic" % (AIO_SERVER, AIO_LIGHTS_FEED))
+```
+
+
+```
+# LOOP
+try:  # Code between try: and finally: may cause an error
+      # so ensure the client disconnects the server if
+      # that happens.
+      
+    while True:  # Repeat this loop forever
+        
+        #Check MQTT messages and publish sensor values to MQTT message broker
+        client.check_msg()  # Action a message if one is received. Non-blocking.
+        send_temperature()  # Publish temperature
+        send_humidity()     # Publish humidity
+
+        # IR Transmitter - send pulse if button is pressed
+        if not button.value():
+            # Button is pressed, send IR signal with encoded message
+            encode_nec(0x55)  # Example message (change as needed)
+        elif button.value() and ir_signal_count > 0:
+            # Button is released, reset IR signal count
+            ir_signal_count = 0
+        
+        # IR Receiver - count number of pulses (counting low to high transitions during button press)
+        if not ir_receiver.value():
+            # IR signal received
+            ir_signal_count += 1
+            print("IR signal received:", ir_signal_count)
+            while not ir_receiver.value():  # Wait until the IR receiver input goes high
+                pass  # Do nothing
+        
+        # Check criteria that determines if we have bumped into another friendly stroller
+        if ir_signal_count > SIGNAL_COUNT_CUTOFF:
+            if rgb_isEnabled:
+                rgb_led.on()                       # Turn on RGB LED if enabled
+            last_rgb_flash_ticks = time.ticks_ms() # Reset RGB led timing
+            
+            send_IR_sensor()                       # Send MQTT message "You bumped into someone" to Adafruit and discord
+            
+            while (time.ticks_ms() - last_rgb_flash_ticks) < RGB_INTERVAL:
+                pass                               # Do nothing while LED flashes for 10 seconds
+            rgb_led.off()                          # Turn off RGB LED
+            
+        # Turn on the on-board LED when we detect vibrations (using tilt switch for this purpose!) 
+        if tilt_pin.value():
+            #print("Tilt switch is in the open position")
+            led.off()  # Turn off the on-board LED
+        else:
+            #print("Tilt switch is in the closed position")
+            led.on()  # Turn on the on-board LED
+
+finally:  # If an exception is thrown ...
+    client.disconnect()  # ... disconnect the client and clean up.
+    client = None
+    print("Disconnected from Adafruit IO.")
+```
+The code implements an IR transmitter and receiver to detect proximity events between two strollers. When the button is pressed, the code sends an IR signal with an encoded message using the NEC protocol. The IR receiver part of the code counts the number of received pulses (low to high transitions) during the button press. This is likely to occur when two strollers are within 10 meters of each other, which is the maximum range of the IR transmitter.
+
+When the number of IR signals received exceeds the specified cutoff value (`SIGNAL_COUNT_CUTOFF`), it indicates a proximity event. In response, the code activates the RGB LED indicator (if enabled). It sends an MQTT message to Adafruit IO and Discord: "You bumped into someone!" using the `send_IR_sensor()` function. The RGB LED then flashes for a specific duration (`RGB_INTERVAL`). The RGB LED can be toggled on/off from the Adafruit IO Dashboard, through the lights MQTT topic which the Pico subscribes to.
+
+Another quirk of the code is that I used the tilt sensor to detect vibrations. When the stroller goes over rough surfaces, it lights up the on-board LED on the Pico PCB. This is quite appealing visually.
 
 # Transmitting the data / connectivity
 * Temperature and humidity measurements are published  **every minute**. 
