@@ -14,20 +14,20 @@ import dht                    # Import DHT sensor library
 
 # CONFIGURING PINS
 # Initialize DHT11 temperature and humidity sensor
-dhtSensor = dht.DHT11(Pin(27))
+dhtSensor = dht.DHT11(Pin(17))
 
 # Initialize LED pins
-green_led = Pin(14, Pin.OUT)  # green LED pin
-red_led = Pin(15, Pin.OUT)    # red LED pin
-yellow_led=Pin(16, Pin.OUT)   # yellow LED pin
-rgb_led = Pin(13, Pin.OUT)    # RGB LED pin
-led = Pin("LED", Pin.OUT)     # on-board led pin initialization for Raspberry Pi Pico W
+green_led = Pin(1, Pin.OUT)  # green LED pin
+yellow_led=Pin(2, Pin.OUT)   # yellow LED pin
+red_led = Pin(3, Pin.OUT)    # red LED pin
+rgb_led = Pin(16, Pin.OUT)   # RGB LED pin
+led = Pin("LED", Pin.OUT)    # on-board led pin initialization for Raspberry Pi Pico W
 
 # Initialize button sensor, tilt sensor, IR receiver and transmitter pins
-ir_transmitter = Pin(17, Pin.OUT)      # IR transmitter PIN
-ir_receiver = Pin(18, Pin.IN)          # IR receiver PIN
-button = Pin(19, Pin.IN, Pin.PULL_UP)  # Push button PIN
 tilt_pin = Pin(0, Pin.IN)              # Tilt sensor PIN (we use it to measure vibrations!)
+button = Pin(18, Pin.IN, Pin.PULL_UP)  # Push button PIN
+ir_transmitter = Pin(19, Pin.OUT)      # IR transmitter PIN
+ir_receiver = Pin(20, Pin.IN)          # IR receiver PIN
 
 # SENSOR PREFERENCES
 # Preferences for IR Transmitter/Receiver
@@ -54,7 +54,7 @@ HUMID_HIGH = 70.0             # yellow LED turns on above this
 # Wi-Fi configuration
 WIFI_SSID, WIFI_PASS = secrets["ssid"], secrets["password"]
 
-# Adafruit IO (AIO) MQTT configuration
+# MQTT configuration with Adafruit IO (AIO)
 AIO_SERVER = "io.adafruit.com"
 AIO_PORT = 1883
 AIO_USER = "stroller"
@@ -124,7 +124,7 @@ def measure_humidity():
         # Error occurred while reading sensor values
         print("Error in reading sensor values")
 
-# Functions to publish IR sensor
+# Function to publish IR sensor when you meet another friendly stroller
 def send_IR_sensor():
     try:
         client.publish(topic=AIO_IR_SENSOR_FEED, msg="You bumped into someone!")
@@ -132,7 +132,7 @@ def send_IR_sensor():
     except Exception as e:
         print("FAILED")
 
-# Functions to publish temperature to Adafruit IO MQTT server at fixed interval
+# Function to publish temperature
 def send_temperature():
     global last_temperature_sent_ticks
     global TEMPERATURE_INTERVAL
@@ -152,7 +152,7 @@ def send_temperature():
     finally:
         last_temperature_sent_ticks = time.ticks_ms()
 
-# Function to publish humidity to Adafruit IO MQTT server at fixed interval 
+# Function to publish humidity
 def send_humidity():
     global last_humidity_sent_ticks
     global HUMIDITY_INTERVAL
