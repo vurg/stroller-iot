@@ -3,9 +3,9 @@
 
 ![](https://hackmd.io/_uploads/H1rHToZt2.png)
 
-**Overview**: Stroller IoT is a smart stroller project using the Raspberry Pi Pico W that includes a temperature and humidity sensor, indicator lights, and a social networking component. The purpose is to allow parents with strollers to monitor the environment, so they can take actions to ensure the comfort of their child. Another purpose of the project is to enable parents with strollers to socialize when they are in close proximity or approaching each other (within 10 meters).
+**Overview**: Stroller IoT is a smart stroller project using the Raspberry Pi Pico W that includes a temperature and humidity sensor, vibration sensor, indicator lights, and a social networking component. The purpose is to allow parents with strollers to monitor the environment, so they can take actions to ensure the comfort of their child. Another purpose of the project is to enable parents with strollers to socialize when they are in close proximity or approaching each other (within 10 meters).
 
-The project hardware includes the Raspberry Pi Pico W, a DHT11 sensor, LED indicators, a push button, and a 38 kHz IR transmitter/sensor pair. The software includes an Adafruit IoT dashboard.
+The project hardware includes the Raspberry Pi Pico W, a DHT11 sensor, LED indicators, a push button, a tilt sensor, and a 38 kHz IR transmitter/sensor pair. The software includes an Adafruit IoT dashboard.
 
 **Time**: 10-12 hours to complete, depending on skill level.
 
@@ -38,7 +38,7 @@ Follow these steps to install Thonny and flash firmware on the Raspberry Pi Pico
 
 1. Download and install the Raspberry Pi Pico W [MicroPython UF2 firmware](https://micropython.org/download/rp2-pico-w/rp2-pico-w-latest.uf2):
 Connect your Raspberry Pi Pico W to your computer via USB, holding the **BOOTSEL button** down. Release BOOTSEL button. Drag and drop the MicroPython UF2file onto the RPI-RP2 volume Mass Storage Device. The Pico should reboot. That's it, firmware has been flashed.
-
+![](https://hackmd.io/_uploads/S1vd2HMFn.png)
 2. Choose your interpreter (Thonny or VS Code):
 **Thonny IDE**: Download and install [Thonny](https://thonny.org/). In Thonny, go to **File** -> **Open...** and navigate to the extracted firmware folder. Select ***MicroPython (Raspberry Pi Pico) - COM5*** as your interpreter, in the bottom right hand corner of Thonny window. Create a new folder, called **Stroller_IoT**. Save your .py files to Raspberry Pi Pico to update the device. You can install packages from **Run** -> **Manage Packages...** which will save them to the lib folder.
 -or-
@@ -47,11 +47,13 @@ Connect your Raspberry Pi Pico W to your computer via USB, holding the **BOOTSEL
 That's it! You have installed Thonny / VS Code and flashed the firmware on Raspberry Pi Pico W.
 
 
+
+
 ## Putting everything together
 A quick walkthrough what the purpose of each electronic components for this project and how they interact with each other:
 * DHT11 measures temperature (degC) and relative humidity (%). Published to Adafruit.
 * LED indicators change color depending on temperature (solid green if ideal, flashes red if its outside optimal range), and humidity preferences (yellow lights up if it's very humid).
-* Tilt switch turns on pico PCB on-board LED. This functions as vibration sensor.
+* Tilt switch turns on pico on-board LED. It is quite sensitive, so we use it as vibration sensor.
 * Button press enables the IR transmitter/receiver. Press it while approaching another stroller.
 * If 30 consecutive IR signals are received within short duration, AdaFruit is notified. Discord message is sent through webhook. RGB LED lights up for 10 seconds (default setting).
 
@@ -60,6 +62,8 @@ A quick walkthrough what the purpose of each electronic components for this proj
 **Disconnect USB from powerbank or computer end before you connect any pins.** Verify sensor polarity from sensor/LED datasheets. Refer to the [Pinout Diagram]() for the Raspberry Pi Pico W.
 
 You need to use a 10 kOhm resistor to pull-up the voltage for the tilt switch sensor. You need 330 Ohm resistors for each of the LEDs to limit the current. Power device from laptop or power bank.
+
+:warning: **Warning:** Cabling will be a mess (spagetti) on the breadboard -  it is best to use short wires!!
 
 ## Platform
 I chose [Adafruit IO](https://io.adafruit.com/), a cloud-based platform with webhooks for my IoT project. It is well-suited for small-scale projects and offers beginner-friendly features, free usage, and simple management. The free version allows for 5 feeds and 30 messages per minute, with the option to upgrade for a fee. Adafruit requires minimal coding on the back-end, which made it simple to make a front-end client for my project. I also implemented webhooks to send messages to Discord, which is a really neat feature that is available on Adafruit.
@@ -80,11 +84,14 @@ secrets = {
 ```
 
 
-**This section is under construction. Detailed explanations to follow.**
+:warning:	**This section is under construction. Detailed explanations to follow.** 
 
 
 # Transmitting the data / connectivity
-Temperature and humidity measurements are published on the [Adafruit dashboard](https://io.adafruit.com/stroller/dashboards/mydashboard) every minute. Adafruit.io has built in actions using webhooks that send discord messages. Firstly, we are notified on discord when we encounter another friendly stroller. Secondly, we are alerted when temperature and huidity are much higher than the desired range. My project uses Wi-Fi, typically through a cellphone that has hotspot enabled. Once Wi-Fi connection is established, messages are sent from the Pico to the Adafruit IO server wtih its MQTT cloud broker. We also subscribe to messages from the MQTT broker for whether the RGB LED should turn on when we turn on the IR transmitter and approach another stroller. Some users may not want this (unwanted attention).
+* Temperature and humidity measurements are published  **every minute**. 
+* IR sensor measurements are published in **real-time**, whenever our stroller detects another stroller. 
+
+Adafruit.io has built in actions using webhooks that send discord messages. For this, you need to create a discord server and go into settings->integrations to obtain webhooks link. Adafruit notifies us on discord whenever we encounter another friendly stroller. Secondly, we are alerted when the temperature or humidity are much higher than our desired range. To achieve all this, my project uses **Wi-Fi** and **MQTT**. I setup the Wi-Fi network as a mobile phone hotspot. Once Wi-Fi connection is established, we establish a connection to the MQTT cloud broker that is hosted on the Adafruit IO server. We can then publish and subscribe messages to different topics, which are called feeds in the Adafruit control panel. We publish to three different feeds (temperature, humidity, and ir-sensor). We subscribe to messages on the lights feed. Toggling on/off the RGB LED on the Adafruit dashboard sends ON/OFF messages to the Pico, which are then parsed to enable/disable the RGB LED. Recall that the RGB multicolor LED turns on whenever our stroller detects another stroller. We recognize some users may not want this feature (unwanted attention).
 
 **Note:** The Raspberry Pi Pico W Wi-Fi component is unable to connect to 5G networks!!
 
@@ -102,6 +109,7 @@ The dashboard is built using feeds and actions, as shown below.
 As an alternative, I tried HiveMQ (encrypted cloud broker), and was able to have an SSL/TLS encrypted connection. If I had more time, I would have built my own back-end with this, and a mobile app with [LoRaWAN Geolocation](https://backend.orbit.dtu.dk/ws/portalfiles/portal/130478296/paper_final_2.pdf). I will also try out the TIG stack in the coming days.
 
 # Finalizing the design
+Overall, I think the Stroller IoT project went well. The first prototype is shown below. During the upcoming days, I am hoping to clean it up by using wires instead of cables. I also plan to make a PCB for it and a 3D-printed, waterproof case. I am nonetheless a bit disappointed that I did not get to use LoRaWAN in my final design. I purchased the LoRaWAN antenna, but realized rather late in my project that I would need another antenna (and another device!) to test out proximity detection features. Therefore, I had to be clever and designed the prototype to detect reflected IR signals rather than friendly strollers. This is actually more difficult to do. The final version should also implement proper IR encoding to maximize privacy, and minimize interference from other IR transmitting devices. Lastly, I am hoping to make a mobile app for this. Fun times ahead!!! :slightly_smiling_face:
 | Prototype with Breadboard + Powerbank| IoT Dashboard |
 | -------- | -------- | 
 |<img src="https://hackmd.io/_uploads/ryK3T-Mt3.jpg" width="60%" height="60%">|<img src="https://hackmd.io/_uploads/BkoBMHfth.png" width="150%" height="150%">|
