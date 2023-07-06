@@ -252,4 +252,5 @@ Overall, I think the Stroller IoT project went well. The first prototype is show
 ![](https://hackmd.io/_uploads/B1Q6WHMF3.png)
 
 **GitHub**: https://github.com/vurg/stroller-iot/tree/main
+
 **HackMD**: https://github.com/vurg/stroller-iot
