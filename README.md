@@ -50,8 +50,6 @@ Connect your Raspberry Pi Pico W to your computer via USB, holding the **BOOTSEL
 That's it! You have installed Thonny / VS Code and flashed the firmware on Raspberry Pi Pico W.
 
 
-
-
 # Putting everything together
 A quick walkthrough what the purpose of each electronic components for this project and how they interact with each other:
 * DHT11 measures temperature (degC) and relative humidity (%). Published to Adafruit.
@@ -225,7 +223,9 @@ Another quirk of the code is that I used the tilt sensor to detect vibrations. W
 * Temperature and humidity measurements are published  **every minute**. 
 * IR sensor measurements are published in **real-time**, whenever our stroller detects another stroller. 
 
-Adafruit.io has built in actions using webhooks that send discord messages. For this, you need to create a discord server and go into settings->integrations to obtain webhooks link. Adafruit notifies us on discord whenever we encounter another friendly stroller. Secondly, we are alerted when the temperature or humidity are much higher than our desired range. To achieve all this, my project uses **Wi-Fi** and **MQTT**. I setup the Wi-Fi network as a mobile phone hotspot. Once Wi-Fi connection is established, we establish a connection to the MQTT cloud broker that is hosted on the Adafruit IO server. We can then publish and subscribe messages to different topics, which are called feeds in the Adafruit control panel. We publish to three different feeds (temperature, humidity, and ir-sensor). We subscribe to messages on the lights feed. Toggling on/off the RGB LED on the Adafruit dashboard sends ON/OFF messages to the Pico, which are then parsed to enable/disable the RGB LED. Recall that the RGB multicolor LED turns on whenever our stroller detects another stroller. We recognize some users may not want this feature (unwanted attention).
+Adafruit.io has built in actions using **webhooks** that send discord messages. For this, you need to create a discord server and go into settings->integrations to obtain webhooks link. Adafruit notifies us on discord whenever we encounter another friendly stroller. Secondly, we are alerted when the temperature or humidity are much higher than our desired range. To achieve all this, my project uses **Wi-Fi** and **MQTT**. I setup the Wi-Fi network as a mobile phone hotspot. Once Wi-Fi connection is established, we establish a connection to the MQTT cloud broker that is hosted on the Adafruit IO server. We can then publish and subscribe messages to different topics, which are called feeds in the Adafruit control panel. We publish to three different feeds (temperature, humidity, and ir-sensor). We subscribe to messages on the lights feed. Toggling on/off the RGB LED on the Adafruit dashboard sends ON/OFF messages to the Pico, which are then parsed to enable/disable the RGB LED. Recall that the RGB multicolor LED turns on whenever our stroller detects another stroller. We recognize some users may not want this feature (unwanted attention).
+
+Wi-Fi and LoRa are wireless protocols with different characteristics. LoRa is designed for long-range, low-power communications in IoT applications, offering excellent outdoor coverage but limited bandwidth and higher latency. Wi-Fi, on the other hand, provides higher data rates and lower latency, making it suitable for applications that require faster communication and higher bandwidth in local area networks. Wi-Fi typically performs well in indoor environments, due to its higher frequency range and ability to penetrate walls and obstacles. Wi-Fi routers are available in indoor and outdoor urban environments, as well as through Wi-Fi hotspots from mobile phones, providing reliable coverage and connectivity. LoRaWAN coverage is limited indoors and limited in some rural areas. This makes Wi-Fi a suitable choice for our Stroller IoT application, because the stroller may be used inside shopping malls, and other indoor spaces. Charging batteries is not a problem for parents with usual child-care routines.
 
 **Note:** The Raspberry Pi Pico W Wi-Fi component is unable to connect to 5G networks!!
 
@@ -240,10 +240,10 @@ The dashboard is built using feeds and actions, as shown below.
 ![](https://hackmd.io/_uploads/rkJDGrMY2.png)
 ![](https://hackmd.io/_uploads/HJSvGBzY2.png)
 
-As an alternative, I tried HiveMQ (encrypted cloud broker), and was able to have an SSL/TLS encrypted connection. If I had more time, I would have built my own back-end with this, and a mobile app with [LoRaWAN Geolocation](https://backend.orbit.dtu.dk/ws/portalfiles/portal/130478296/paper_final_2.pdf). I will also try out the TIG stack in the coming days.
+As an alternative, I tried HiveMQ (encrypted cloud broker), and was able to have an SSL/TLS encrypted connection. If I had more time, I would have tried to built my own back-end with this, and a mobile app to go with it. I plan to try out the TIG stack later this week, because I am interested in learning InfluxDB (time-series database) and Grafana for visualization. 
 
 # Finalizing the design
-Overall, I think the Stroller IoT project went well. The first prototype is shown below. During the upcoming days, I am hoping to clean it up by using wires instead of cables. I also plan to make a PCB for it and a 3D-printed, waterproof case. I am nonetheless a bit disappointed that I did not get to use LoRaWAN in my final design. I purchased the LoRaWAN antenna, but realized rather late in my project that I would need another antenna (and another device!) to test out proximity detection features. Therefore, I had to be clever and designed the prototype to detect reflected IR signals rather than friendly strollers. This is actually more difficult to do. The final version should also implement proper IR encoding to maximize privacy, and minimize interference from other IR transmitting devices. Lastly, I am hoping to make a mobile app for this. Fun times ahead!!! :slightly_smiling_face:
+Overall, I think the Stroller IoT project went well. The first prototype is shown below. During the upcoming days, I will organize the breaboard better by using wires instead of cables. I also plan to make a PCB for it and a 3D-printed, waterproof case. I am nonetheless a bit disappointed that I did not get to use LoRaWAN in my final design. My original goal was to try and use [LoRaWAN with Geolocation](https://backend.orbit.dtu.dk/ws/portalfiles/portal/130478296/paper_final_2.pdf).  I purchased the LoRaWAN antenna, but realized rather late in my project that I would need another antenna (and another device!) to test out proximity detection features. Lack of LoRaWAN coverage was another limitation. Therefore, I had to be clever and used an IR transmitter/sensor for proximity detection. Since I only had one device, the designed prototype had to detect reflected IR signals from self, in addition to other friendly strollers. This is actually more difficult to implement than having two or more devices communicating with each other. The final version of the project should also implement dynamic IR encoding to maximize privacy, and should minimize interference from other IR transmitting devices (including self). Lastly, I will make a mobile app for this. :slightly_smiling_face:
 | Prototype with Breadboard + Powerbank| IoT Dashboard |
 | -------- | -------- | 
 |<img src="https://hackmd.io/_uploads/ryK3T-Mt3.jpg" width="60%" height="60%">|<img src="https://hackmd.io/_uploads/BkoBMHfth.png" width="150%" height="150%">|
@@ -251,4 +251,5 @@ Overall, I think the Stroller IoT project went well. The first prototype is show
 **Discord**
 ![](https://hackmd.io/_uploads/B1Q6WHMF3.png)
 
-**Hackmd link:** https://hackmd.io/@rIFCcdNpR2WfEEjApaiQyw/B1Un8bGFn
+**GitHub**: https://github.com/vurg/stroller-iot/tree/main
+**HackMD**: https://github.com/vurg/stroller-iot
